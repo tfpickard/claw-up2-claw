@@ -133,6 +133,8 @@ mkdir -p \
   "${CLAW_HOME}/reports/research" \
   "${CLAW_HOME}/reports/builds" \
   "${CLAW_HOME}/reports/tests" \
+  "${CLAW_HOME}/reports/deploys" \
+  "${CLAW_HOME}/reports/growth" \
   "${CLAW_HOME}/reports/standups" \
   "${CLAW_HOME}/ideas/briefs" \
   "${CLAW_HOME}/ideas/specs" \
@@ -324,15 +326,21 @@ echo "    🔬  researcher"
 echo "    🎨  designer"
 echo "    ⚡  implementer"
 echo "    🧪  tester"
+echo "    🚀  deployer"
+echo "    📣  growth"
 echo ""
 echo "  Cron schedule:"
-echo "    00 */4 * * *  trend-hunt       → product-strategist"
-echo "    30 */4 * * *  research-sweep   → researcher"
-echo "    00 9   * * *  morning-standup  → Slack"
-echo "    00 18  * * *  evening-checkin  → Slack"
-echo "    00 */8 * * *  build-cycle      → implementer"
-echo "    00 4   * * *  test-cycle       → tester"
-echo "    00 10  * * 1  weekly-review    → Slack"
+echo "    00 */4 * * *  trend-hunt        → product-strategist"
+echo "    30 */4 * * *  research-sweep    → researcher"
+echo "    00 */6 * * *  design-cycle      → designer"
+echo "    00 9   * * *  morning-standup   → Slack"
+echo "    00 18  * * *  evening-checkin   → Slack"
+echo "    00 */8 * * *  build-cycle       → implementer"
+echo "    00 4   * * *  test-cycle        → tester"
+echo "    30 4   * * *  deploy-cycle      → deployer"
+echo "    00 */12 * * * growth-cycle      → growth"
+echo "    00 10  * * 3  competitor-check  → researcher"
+echo "    00 10  * * 1  weekly-review     → Slack"
 echo ""
 echo "  Attach:"
 echo "  ssh -t ${CLAW_USER}@${VPS_IP} tmux attach -t forge"

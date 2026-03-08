@@ -39,9 +39,9 @@
       },
       "subagents": {
         "maxSpawnDepth": 2,
-        "maxChildrenPerAgent": 4,
-        "maxConcurrent": 6,
-        "runTimeoutSeconds": 900
+        "maxChildrenPerAgent": 8,
+        "maxConcurrent": 12,
+        "runTimeoutSeconds": 1800
       },
       "sandbox": {
         "mode": "off"
@@ -102,6 +102,26 @@
         },
         "workspace": "/home/claw/.openclaw/workspaces/tester",
         "agentDir": "/home/claw/.openclaw/agents/tester"
+      },
+      {
+        "id": "deployer",
+        "name": "Deployer",
+        "identity": {
+          "name": "Deployer",
+          "emoji": "🚀"
+        },
+        "workspace": "/home/claw/.openclaw/workspaces/deployer",
+        "agentDir": "/home/claw/.openclaw/agents/deployer"
+      },
+      {
+        "id": "growth",
+        "name": "Growth",
+        "identity": {
+          "name": "Growth",
+          "emoji": "📣"
+        },
+        "workspace": "/home/claw/.openclaw/workspaces/growth",
+        "agentDir": "/home/claw/.openclaw/agents/growth"
       }
     ]
   },
@@ -146,7 +166,7 @@
   "cron": {
     "enabled": true,
     "store": "/home/claw/.openclaw/cron/jobs.json",
-    "maxConcurrentRuns": 2,
+    "maxConcurrentRuns": 4,
     "retry": {
       "maxAttempts": 3,
       "backoffMs": [60000, 120000, 300000],

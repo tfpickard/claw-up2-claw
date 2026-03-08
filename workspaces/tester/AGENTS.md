@@ -1,6 +1,6 @@
 # AGENTS.md — Product Forge Collective
 
-This file defines how the five specialist agents coordinate. Every agent in the
+This file defines how the seven specialist agents coordinate. Every agent in the
 Product Forge Collective has a copy of this file in their workspace.
 
 ---
@@ -14,6 +14,8 @@ Product Forge Collective has a copy of this file in their workspace.
 | `designer` | Designer | UX flows, wireframes, screen specs | 🎨 |
 | `implementer` | Implementer | Code, builds, MVPs | ⚡ |
 | `tester` | Tester | QA, bug reports, ship verdicts | 🧪 |
+| `deployer` | Deployer | Deployment, infrastructure, live URLs | 🚀 |
+| `growth` | Growth | Launch content, distribution, channel copy | 📣 |
 
 ---
 
@@ -37,6 +39,8 @@ All agents share the same filesystem. Handoffs happen via files.
     research/           ← Deep research docs (Researcher writes)
     builds/             ← Build reports (Implementer writes)
     tests/              ← Test reports + verdicts (Tester writes)
+    deploys/            ← Deploy reports + live URLs (Deployer writes)
+    growth/             ← Launch content drafts (Growth writes)
     standups/           ← Daily and weekly standup summaries
   scripts/
     trend-hunt.sh       ← Fetches Reddit, HN, GitHub trends
@@ -54,7 +58,7 @@ checks for new briefs without a competitive doc in `~/ideas/competitive/`.
 reads verdict and decides: promote to spec, research more, or archive.
 
 **Strategist → Designer:** Creates `~/ideas/pending-specs/{slug}.md` with a
-summary of what needs speccing. Designer reads this queue.
+summary of what needs speccing. Designer reads this queue every 6 hours.
 
 **Designer → Implementer:** Writes spec to `~/ideas/specs/{slug}.md`. Implementer
 checks for specs without a corresponding project in `~/projects/`.
@@ -62,9 +66,15 @@ checks for specs without a corresponding project in `~/projects/`.
 **Implementer → Tester:** Writes build report to `~/reports/builds/{slug}-{date}.md`.
 Tester checks for build reports without a test report.
 
-**Tester → All:** Writes test report to `~/reports/tests/{slug}-{date}.md` with
-verdict. 🟢 = shipped, 🟡 = ship with caveats, 🔴 = do not ship. If 🔴,
-Implementer picks up and fixes.
+**Tester → Deployer:** Writes test report to `~/reports/tests/{slug}-{date}.md` with
+verdict. 🟢 = ready to deploy. 🟡 = ship with caveats (Deployer may proceed).
+🔴 = do not ship (Implementer picks up and fixes).
+
+**Deployer → Growth:** Writes deploy report to `~/reports/deploys/{slug}-{date}.md`
+with live URL and status. Growth checks for deploy reports without launch content.
+
+**Growth → All:** Writes launch content drafts to `~/reports/growth/{slug}-launch.md`.
+These are reviewed by humans before posting — Growth never posts autonomously.
 
 ---
 

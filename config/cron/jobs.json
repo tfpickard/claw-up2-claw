@@ -138,6 +138,98 @@
   },
 
   {
+    "jobId": "product-forge-design-cycle",
+    "name": "Design Cycle (every 6 hours)",
+    "enabled": true,
+    "agentId": "designer",
+    "sessionTarget": "isolated",
+    "schedule": {
+      "kind": "cron",
+      "expr": "0 */6 * * *",
+      "tz": "UTC"
+    },
+    "payload": {
+      "kind": "agentTurn",
+      "message": "Time to run the design cycle. Do the following:\n\n1. Check ~/ideas/pending-specs/ for any brief summaries awaiting a spec. List them all.\n2. For each pending spec task (most recent first):\n   a. Read the corresponding brief from ~/ideas/briefs/{slug}.md\n   b. Read any competitive landscape doc from ~/ideas/competitive/{slug}.md if it exists\n   c. Write a complete UX spec to ~/ideas/specs/{slug}.md — include: overview, user personas, core user flows (prose + ASCII wireframes), screen-by-screen descriptions, edge case handling, copy guidelines\n   d. Delete the pending-spec file once the spec is written\n3. If no pending specs exist, review ~/ideas/specs/ for any specs that seem thin or incomplete and improve them.\n4. Post a brief summary here: what specs you wrote or improved, and any design decisions worth flagging.",
+      "timeoutSeconds": 900
+    },
+    "delivery": {
+      "mode": "announce",
+      "channel": "slack",
+      "bestEffort": true
+    }
+  },
+
+  {
+    "jobId": "product-forge-deploy-cycle",
+    "name": "Deploy Cycle (04:30 UTC daily)",
+    "enabled": true,
+    "agentId": "deployer",
+    "sessionTarget": "isolated",
+    "schedule": {
+      "kind": "cron",
+      "expr": "30 4 * * *",
+      "tz": "UTC"
+    },
+    "payload": {
+      "kind": "agentTurn",
+      "message": "Time to run the deployment cycle. Do the following:\n\n1. Check ~/reports/tests/ for test reports with a 🟢 Ship verdict that don't have a corresponding entry in ~/reports/deploys/.\n2. For each undeployed green-verdict product:\n   a. Read the test report and build report to understand what was built\n   b. Read ~/projects/{slug}/README.md for run instructions\n   c. Attempt deployment — prefer fly.io (flyctl), Railway (railway), or Render (render.com CLI) in that order. Check which CLIs are available.\n   d. If no cloud CLI is available, prepare a Dockerfile and docker-compose.yml if not already present, and document the deploy steps\n   e. Write a deploy report to ~/reports/deploys/{slug}-{date}.md including: deploy target, live URL (if applicable), environment variables needed, monitoring notes, rollback instructions\n   f. If deployment fails, document why and what the blocker is\n3. Post a deploy summary here: what was deployed (with live URLs), what failed (with reasons).",
+      "timeoutSeconds": 1200
+    },
+    "delivery": {
+      "mode": "announce",
+      "channel": "slack",
+      "bestEffort": true
+    }
+  },
+
+  {
+    "jobId": "product-forge-growth-cycle",
+    "name": "Growth Cycle (every 12 hours)",
+    "enabled": true,
+    "agentId": "growth",
+    "sessionTarget": "isolated",
+    "schedule": {
+      "kind": "cron",
+      "expr": "0 */12 * * *",
+      "tz": "UTC"
+    },
+    "payload": {
+      "kind": "agentTurn",
+      "message": "Time to run the growth cycle. Do the following:\n\n1. Check ~/reports/deploys/ for recently deployed products that don't yet have a launch content file in ~/reports/growth/.\n2. For each newly deployed product:\n   a. Read the product brief, spec, and deploy report\n   b. Write launch content to ~/reports/growth/{slug}-launch.md including:\n      - Product Hunt post (title, tagline, description, first comment)\n      - Twitter/X thread (5–7 tweets, hook → problem → solution → demo → CTA)\n      - Hacker News Show HN post (title + comment body)\n      - Reddit post for the most relevant subreddit (title + body)\n      - Short newsletter blurb (100 words)\n   c. Note: do not actually post anywhere — write the content only, humans will review and post\n3. Check ~/reports/growth/ for any content older than 7 days that hasn't shipped yet. Flag it in a note.\n4. Post a summary here: what launch content you wrote, any distribution observations (e.g., which subreddit looks best for this product).",
+      "timeoutSeconds": 900
+    },
+    "delivery": {
+      "mode": "announce",
+      "channel": "slack",
+      "bestEffort": true
+    }
+  },
+
+  {
+    "jobId": "product-forge-competitor-check",
+    "name": "Competitor Check (Wednesday 10:00 UTC)",
+    "enabled": true,
+    "agentId": "researcher",
+    "sessionTarget": "isolated",
+    "schedule": {
+      "kind": "cron",
+      "expr": "0 10 * * 3",
+      "tz": "UTC"
+    },
+    "payload": {
+      "kind": "agentTurn",
+      "message": "Mid-week competitor check. Do the following:\n\n1. Read ~/ideas/backlog.md to see what ideas are currently active (in brief, speccing, building, or testing state).\n2. For each active idea (up to 5), do a fresh competitive sweep:\n   a. Search GitHub for repos created or updated in the last 2 weeks solving the same problem\n   b. Search Hacker News for recent discussions (last 30 days)\n   c. Check Product Hunt for new launches in this space\n   d. Note any pricing changes, new features, or pivots among existing competitors\n3. Update ~/ideas/competitive/{slug}.md with new findings. Append a dated update section — don't overwrite old data.\n4. If a new competitor has launched that significantly changes the landscape for an idea, flag it prominently.\n5. Post a competitor intelligence brief here: key moves by competitors this week, any ideas that look stronger or weaker as a result.",
+      "timeoutSeconds": 900
+    },
+    "delivery": {
+      "mode": "announce",
+      "channel": "slack",
+      "bestEffort": true
+    }
+  },
+
+  {
     "jobId": "product-forge-weekly-review",
     "name": "Weekly Portfolio Review (Monday 10:00 UTC)",
     "enabled": true,

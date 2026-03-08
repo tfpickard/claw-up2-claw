@@ -165,13 +165,8 @@
 
   "cron": {
     "enabled": true,
-    "store": "/home/claw/.openclaw/cron/jobs.json",
     "maxConcurrentRuns": 4,
-    "retry": {
-      "maxAttempts": 3,
-      "backoffMs": [60000, 120000, 300000],
-      "retryOn": ["rate_limit", "overloaded", "network", "server_error"]
-    }
+    "sessionRetention": "24h"
   },
 
   "session": {

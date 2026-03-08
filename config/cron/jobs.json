@@ -1,6 +1,6 @@
 [
   {
-    "id": "product-forge-trend-hunt",
+    "jobId": "product-forge-trend-hunt",
     "name": "Trend Hunt (every 4 hours)",
     "enabled": true,
     "agentId": "product-strategist",
@@ -23,7 +23,7 @@
   },
 
   {
-    "id": "product-forge-research-sweep",
+    "jobId": "product-forge-research-sweep",
     "name": "Research Sweep (every 4 hours, offset)",
     "enabled": true,
     "agentId": "researcher",
@@ -46,7 +46,7 @@
   },
 
   {
-    "id": "product-forge-morning-standup",
+    "jobId": "product-forge-morning-standup",
     "name": "Morning Standup (09:00 UTC)",
     "enabled": true,
     "agentId": "product-strategist",
@@ -69,7 +69,7 @@
   },
 
   {
-    "id": "product-forge-evening-checkin",
+    "jobId": "product-forge-evening-checkin",
     "name": "Evening Check-In (18:00 UTC)",
     "enabled": true,
     "agentId": "implementer",
@@ -92,7 +92,7 @@
   },
 
   {
-    "id": "product-forge-build-cycle",
+    "jobId": "product-forge-build-cycle",
     "name": "Build Cycle Trigger (every 8 hours)",
     "enabled": true,
     "agentId": "implementer",
@@ -115,7 +115,7 @@
   },
 
   {
-    "id": "product-forge-test-cycle",
+    "jobId": "product-forge-test-cycle",
     "name": "Test Cycle (every 8 hours, offset)",
     "enabled": true,
     "agentId": "tester",
@@ -138,7 +138,7 @@
   },
 
   {
-    "id": "product-forge-design-cycle",
+    "jobId": "product-forge-design-cycle",
     "name": "Design Cycle (every 6 hours)",
     "enabled": true,
     "agentId": "designer",
@@ -161,7 +161,7 @@
   },
 
   {
-    "id": "product-forge-deploy-cycle",
+    "jobId": "product-forge-deploy-cycle",
     "name": "Deploy Cycle (04:30 UTC daily)",
     "enabled": true,
     "agentId": "deployer",
@@ -184,7 +184,7 @@
   },
 
   {
-    "id": "product-forge-growth-cycle",
+    "jobId": "product-forge-growth-cycle",
     "name": "Growth Cycle (every 12 hours)",
     "enabled": true,
     "agentId": "growth",
@@ -207,7 +207,7 @@
   },
 
   {
-    "id": "product-forge-competitor-check",
+    "jobId": "product-forge-competitor-check",
     "name": "Competitor Check (Wednesday 10:00 UTC)",
     "enabled": true,
     "agentId": "researcher",
@@ -230,7 +230,7 @@
   },
 
   {
-    "id": "product-forge-weekly-review",
+    "jobId": "product-forge-weekly-review",
     "name": "Weekly Portfolio Review (Monday 10:00 UTC)",
     "enabled": true,
     "agentId": "product-strategist",

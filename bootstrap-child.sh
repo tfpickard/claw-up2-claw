@@ -54,8 +54,8 @@ apt-get install -y -qq btm
 
 # ── Node.js 20 LTS ────────────────────────────────────────────────────────────
 
-echo "==> Installing Node.js 20.x LTS"
-curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+echo "==> Installing Node.js 22.x LTS"
+curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
 apt-get install -y nodejs
 npm install -g npm@latest
 
@@ -71,6 +71,7 @@ echo "  pnpm: $(pnpm --version)"
 # ── Docker ────────────────────────────────────────────────────────────────────
 
 echo "==> Installing Docker"
+[[ -f /etc/apt/keyrings/docker.gpg ]] && rm -f /etc/apt/keyrings/docker.gpg
 install -m 0755 -d /etc/apt/keyrings
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
   | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
@@ -116,13 +117,14 @@ sudo -u "${CLAW_USER}" bash -c "
 "
 
 echo "==> Linking openclaw to PATH"
+PNPM_HOME="${CLAW_HOME}/.local/share/pnpm"
+PNPM_BIN="${PNPM_HOME}"
 sudo -u "${CLAW_USER}" bash -c "
+  export PNPM_HOME=${PNPM_HOME}
+  mkdir -p \"\${PNPM_HOME}\"
   cd ${CLAW_HOME}/openclaw
   pnpm link --global
 "
-
-# Make sure the claw user's pnpm global bin is in PATH for systemd
-PNPM_BIN=$(sudo -u "${CLAW_USER}" bash -c "pnpm bin --global")
 echo "  openclaw binary: ${PNPM_BIN}/openclaw"
 
 # ── Pre-write config to skip onboarding ───────────────────────────────────────

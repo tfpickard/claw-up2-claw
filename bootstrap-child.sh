@@ -149,7 +149,6 @@ cat > "${CLAW_HOME}/.openclaw/openclaw.json" <<EOF
     "maxConcurrent": 6,
     "orchestration": true
   },
-  "channels": [],
   "logging": {
     "level": "info",
     "dir": "${CLAW_HOME}/logs"
@@ -269,6 +268,7 @@ ufw allow ssh
 ufw allow "${OPENCLAW_PORT}/tcp"
 ufw --force enable
 
+sudo -u "${CLAW_USER}" ~/.local/share/pnpm/openclaw doctor --fix
 # ── Persistent tmux session ───────────────────────────────────────────────────
 
 echo "==> Starting persistent tmux session 'worker'"

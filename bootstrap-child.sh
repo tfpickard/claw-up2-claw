@@ -14,7 +14,7 @@ set -euo pipefail
 
 CLAW_USER="claw"
 CLAW_HOME="/home/${CLAW_USER}"
-OPENCLAW_PORT="${OPENCLAW_PORT:-3001}"
+OPENCLAW_PORT="${OPENCLAW_PORT:-18789}"
 LLM_API_KEY="${LLM_API_KEY:?Need LLM_API_KEY}"
 LLM_PROVIDER="${LLM_PROVIDER:-anthropic}"
 PARENT_PUBKEY="${PARENT_PUBKEY:?Need PARENT_PUBKEY}"
@@ -104,12 +104,12 @@ usermod -aG docker "${CLAW_USER}"
 # ── Build OpenClaw from source (master) ───────────────────────────────────────
 
 echo "==> Cloning OpenClaw from master"
-git clone https://github.com/openclaw/openclaw.git "${CLAW_HOME}/openclaw-src"
-chown -R "${CLAW_USER}:${CLAW_USER}" "${CLAW_HOME}/openclaw-src"
+git clone https://github.com/openclaw/openclaw.git "${CLAW_HOME}/openclaw"
+chown -R "${CLAW_USER}:${CLAW_USER}" "${CLAW_HOME}/openclaw"
 
 echo "==> Building OpenClaw"
 sudo -u "${CLAW_USER}" bash -c "
-  cd ${CLAW_HOME}/openclaw-src
+  cd ${CLAW_HOME}/openclaw
   pnpm install
   pnpm ui:build
   pnpm build
@@ -117,7 +117,7 @@ sudo -u "${CLAW_USER}" bash -c "
 
 echo "==> Linking openclaw to PATH"
 sudo -u "${CLAW_USER}" bash -c "
-  cd ${CLAW_HOME}/openclaw-src
+  cd ${CLAW_HOME}/openclaw
   pnpm link --global
 "
 
@@ -283,7 +283,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 echo "  User:     ${CLAW_USER}"
 echo "  Port:     ${OPENCLAW_PORT}"
-echo "  Source:   ${CLAW_HOME}/openclaw-src"
+echo "  Source:   ${CLAW_HOME}/openclaw"
 echo "  Logs:     ${CLAW_HOME}/logs/"
 echo "  Reports:  ${CLAW_HOME}/reports/"
 echo "  Projects: ${CLAW_HOME}/projects/"

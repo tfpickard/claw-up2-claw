@@ -209,27 +209,28 @@ chown -R "${CLAW_USER}:${CLAW_USER}" \
   "${CLAW_HOME}/sync" \
   "${CLAW_HOME}/scratch"
 
-# ── Git sync repo ─────────────────────────────────────────────────────────────
-
-sudo -u "${CLAW_USER}" git config --global user.email "claw@worker"
-sudo -u "${CLAW_USER}" git config --global user.name "The Worker"
-sudo -u "${CLAW_USER}" git init "${CLAW_HOME}/sync"
-sudo -u "${CLAW_USER}" bash -c \
-  "cd ${CLAW_HOME}/sync && git commit --allow-empty -m 'init'"
-
-# ── Cron ──────────────────────────────────────────────────────────────────────
-
-echo "==> Setting up daily report cron (06:00)"
-CRON_JOB="0 6 * * * ${PNPM_BIN}/openclaw report > ${CLAW_HOME}/reports/\$(date +\%Y-\%m-\%d).md 2>&1"
-( crontab -u "${CLAW_USER}" -l 2>/dev/null; echo "${CRON_JOB}" ) \
-  | crontab -u "${CLAW_USER}" -
-
+#
+# # ── Git sync repo ─────────────────────────────────────────────────────────────
+#
+# sudo -u "${CLAW_USER}" git config --global user.email "claw@worker"
+# sudo -u "${CLAW_USER}" git config --global user.name "The Worker"
+# sudo -u "${CLAW_USER}" git init "${CLAW_HOME}/sync"
+# sudo -u "${CLAW_USER}" bash -c \
+#   "cd ${CLAW_HOME}/sync && git commit --allow-empty -m 'init'"
+#
+# # ── Cron ──────────────────────────────────────────────────────────────────────
+#
+# echo "==> Setting up daily report cron (06:00)"
+# CRON_JOB="0 6 * * * ${PNPM_BIN}/openclaw report > ${CLAW_HOME}/reports/\$(date +\%Y-\%m-\%d).md 2>&1"
+# ( crontab -u "${CLAW_USER}" -l 2>/dev/null; echo "${CRON_JOB}" ) \
+#   | crontab -u "${CLAW_USER}" -
+#
 # ── Systemd service ───────────────────────────────────────────────────────────
 
 echo "==> Creating systemd service"
-cat > /etc/systemd/system/openclaw-worker.service <<EOF
+cat > /etc/systemd/system/openclaw.service <<EOF
 [Unit]
-Description=OpenClaw Worker Instance
+Description=OpenClaw Gateway Instance
 After=network.target docker.service
 
 [Service]
@@ -249,41 +250,41 @@ WantedBy=multi-user.target
 EOF
 
 systemctl daemon-reload
-systemctl enable openclaw-worker
-systemctl start openclaw-worker
+systemctl enable openclaw
+systemctl start openclaw
 
-# ── SSH hardening ─────────────────────────────────────────────────────────────
+# # ── SSH hardening ─────────────────────────────────────────────────────────────
+#
+# echo "==> Hardening SSH"
+# sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
+# sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
+# systemctl restart sshd
 
-echo "==> Hardening SSH"
-sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
-sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
-systemctl restart sshd
+# # ── Firewall ──────────────────────────────────────────────────────────────────
+#
+# echo "==> Configuring firewall"
+# ufw default deny incoming
+# ufw default allow outgoing
+# ufw allow ssh
+# ufw allow "${OPENCLAW_PORT}/tcp"
+# ufw --force enable
 
-# ── Firewall ──────────────────────────────────────────────────────────────────
-
-echo "==> Configuring firewall"
-ufw default deny incoming
-ufw default allow outgoing
-ufw allow ssh
-ufw allow "${OPENCLAW_PORT}/tcp"
-ufw --force enable
-
-sudo -u "${CLAW_USER}" ~/.local/share/pnpm/openclaw doctor --fix
+sudo -u "${CLAW_USER}" "${CLAW_HOME}"/.local/share/pnpm/openclaw doctor --fix
 # ── Persistent tmux session ───────────────────────────────────────────────────
 
-echo "==> Starting persistent tmux session 'worker'"
-sudo -u "${CLAW_USER}" tmux new-session -d -s worker -x 220 -y 50 2>/dev/null || true
-sudo -u "${CLAW_USER}" tmux new-window -t worker -n "logs" \
-  "journalctl -fu openclaw-worker" 2>/dev/null || true
-sudo -u "${CLAW_USER}" tmux new-window -t worker -n "btm" \
+echo "==> Starting persistent tmux session 'gateway'"
+sudo -u "${CLAW_USER}" tmux new-session -d -s gateway -x 220 -y 50 2>/dev/null || true
+sudo -u "${CLAW_USER}" tmux new-window -t gateway -n "logs" \
+  "journalctl -fu openclaw.service" 2>/dev/null || true
+sudo -u "${CLAW_USER}" tmux new-window -t gateway -n "btm" \
   "btm" 2>/dev/null || true
-sudo -u "${CLAW_USER}" tmux select-window -t worker:1 2>/dev/null || true
+sudo -u "${CLAW_USER}" tmux select-window -t gateway:1 2>/dev/null || true
 
 # ── Done ──────────────────────────────────────────────────────────────────────
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "  ✓  The Worker is alive"
+echo "  ✓  The gateway is alive"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 echo "  User:     ${CLAW_USER}"
@@ -294,7 +295,7 @@ echo "  Reports:  ${CLAW_HOME}/reports/"
 echo "  Projects: ${CLAW_HOME}/projects/"
 echo ""
 echo "  Attach to watch:"
-echo "  ssh -t ${CLAW_USER}@$(hostname -I | awk '{print $1}') tmux attach -t worker"
+echo "  ssh -t ${CLAW_USER}@$(hostname -I | awk '{print $1}') tmux attach -t gateway"
 echo ""
 echo "  Delegate a task:"
 echo "  ssh ${CLAW_USER}@$(hostname -I | awk '{print $1}') openclaw task add 'your task here'"

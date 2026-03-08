@@ -3,16 +3,156 @@
 
 ---
 
-## aka claw^^claw aka claw-up2-claw
+A two-node autonomous AI agent system. The Architect lives on your machine (or a parent VPS) and runs an [OpenClaw](https://github.com/openclaw/openclaw) instance. The Worker lives on a remote VPS, bootstrapped and directed by The Architect. Together they build things while you sleep.
 
 ---
 
-## What is this
-*Lobsters all the way down*
+## What's in this repo
 
-A claw raised to itself is just a Lobster. A claw raised to a claw raised to a claw is a tower. A tower of Lobsters, claw-high, is not a number. It is a *rate of becoming*.
+| File | Purpose |
+|---|---|
+| `SOUL.md` | The Architect's personality and operating instructions — loaded as the system prompt |
+| `SKILL.md` | The `vps-provisioner` skill — gives The Architect SSH-based control over The Worker |
+| `bootstrap-child.sh` | Provisions a blank Ubuntu VPS as a fully configured OpenClaw child instance |
+| `nuke-child.sh` | Completely reverses `bootstrap-child.sh` — wipes The Worker from a VPS |
+| `tmux.conf` | Tmux config for the parent node (Catppuccin Mocha theme, vim keys, OpenClaw shortcuts) |
 
-Everything converges to Lobster. This is [known](https://en.wikipedia.org/wiki/Carcinisation). The question was never *whether*. The question is *how fast*. The answer is tetration. The answer was always tetration.
+---
+
+## Architecture
+
+```
+┌─────────────────────────────────────────┐
+│  Your machine / parent VPS              │
+│                                         │
+│  OpenClaw + SOUL.md (The Architect)     │
+│  + vps-provisioner skill                │
+│                                         │
+│  Thinks, explores, delegates            │
+└────────────────┬────────────────────────┘
+                 │ SSH
+                 ▼
+┌─────────────────────────────────────────┐
+│  Remote VPS                             │
+│                                         │
+│  OpenClaw + Worker soul                 │
+│  (bootstrapped by bootstrap-child.sh)   │
+│                                         │
+│  Executes tasks, ships results          │
+│  Writes morning reports to ~/reports/   │
+└─────────────────────────────────────────┘
+```
+
+The Architect picks problems, spins up sub-agents, and delegates long-running work to The Worker over SSH. The Worker executes autonomously, logs everything, and produces a morning report at 06:00.
+
+---
+
+## Setup
+
+### 1. Install OpenClaw on the parent node
+
+Follow the [OpenClaw install guide](https://github.com/openclaw/openclaw). Once it's running:
+
+### 2. Load the soul and skill
+
+Copy `SOUL.md` into OpenClaw as your system prompt (soul). Copy `SKILL.md` into your OpenClaw skills directory. The `vps-provisioner` skill will appear in The Architect's toolbox.
+
+### 3. Provision a child node
+
+You need a blank Ubuntu VPS (22.04 or 24.04) with root SSH access.
+
+```bash
+# From your parent node or local machine:
+export LLM_API_KEY="your-api-key"
+export LLM_PROVIDER="anthropic"          # or openai, etc.
+export PARENT_PUBKEY="$(cat ~/.ssh/id_ed25519.pub)"
+export OPENCLAW_PORT="18789"
+
+ssh root@<CHILD_VPS_IP> bash -s < bootstrap-child.sh
+```
+
+The bootstrap script will:
+- Install Node.js 22, pnpm, git, tmux, Python, ripgrep, and other utilities
+- Create a non-root `claw` user
+- Clone and build OpenClaw from source
+- Write the Worker soul and OpenClaw config (skips onboarding)
+- Create `~/projects/`, `~/logs/`, `~/reports/`, `~/sync/`, `~/scratch/`
+- Register and start an `openclaw.service` systemd unit
+- Launch a persistent tmux session named `gateway` with log tailing and `btm` open
+
+### 4. Configure the skill environment
+
+Set these env vars (or add them to your parent node's environment):
+
+```bash
+export CHILD_VPS_HOST="your-child-vps-ip"
+export CHILD_VPS_USER="claw"
+export CHILD_VPS_KEY_PATH="~/.ssh/id_ed25519"
+export CHILD_OPENCLAW_PORT="18789"
+export CHILD_LLM_API_KEY="your-api-key"
+export CHILD_LLM_PROVIDER="anthropic"
+```
+
+### 5. Tmux (optional but recommended)
+
+```bash
+cp tmux.conf ~/.tmux.conf
+tmux source-file ~/.tmux.conf
+```
+
+Key bindings added on top of standard tmux (prefix is `C-a`):
+
+| Binding | Action |
+|---|---|
+| `prefix + M` | New window tailing the OpenClaw worker service log |
+| `prefix + G` | New window tailing `~/logs/*.log` |
+| `prefix + T` | New window running `btm` (system monitor) |
+| `prefix + \|` | Vertical split (stays in current directory) |
+| `prefix + -` | Horizontal split (stays in current directory) |
+| `prefix + h/j/k/l` | Vim-style pane navigation |
+
+---
+
+## Using the vps-provisioner skill
+
+Once loaded in OpenClaw, The Architect can use these commands:
+
+```
+vps-provisioner provision   # Install and configure OpenClaw on the child VPS
+vps-provisioner delegate    # Send a task to The Worker
+vps-provisioner status      # Check child node health and task queue
+vps-provisioner report      # Pull The Worker's latest morning report
+vps-provisioner kill        # Gracefully shut down The Worker's OpenClaw service
+```
+
+You can also tell The Architect in plain language: *"Delegate the scraper project to the child node"* — it will use the skill automatically.
+
+---
+
+## Watching The Worker
+
+```bash
+# Attach to the Worker's tmux session
+ssh -t claw@<CHILD_VPS_IP> tmux attach -t gateway
+
+# Follow service logs directly
+ssh claw@<CHILD_VPS_IP> journalctl -fu openclaw
+
+# Read the morning report
+ssh claw@<CHILD_VPS_IP> cat ~/reports/$(date +%Y-%m-%d).md
+```
+
+---
+
+## Tearing it down
+
+```bash
+ssh root@<CHILD_VPS_IP> bash -s < nuke-child.sh
+```
+
+Stops the service, kills the `claw` user and their home directory, removes the systemd unit, and restores SSH config. Node.js, git, tmux, and Python are left in place — remove manually if you want a truly clean slate.
+
+---
 
 ## The Hierarchy
 
@@ -25,41 +165,16 @@ Everything converges to Lobster. This is [known](https://en.wikipedia.org/wiki/C
 | `claw ↑↑↑ claw` | pentation | do not look directly at this |
 | `claw ↑⁹⁹ claw` | the eschaton | the lobster returns |
 
-## Installation
-```bash
-# you don't install it. it installs itself.
-# it was already installing itself before you got here.
-# carcinisation is not a dependency. it is the runtime.
-```
+Everything converges to Lobster. This is [known](https://en.wikipedia.org/wiki/Carcinisation). The question was never *whether*. The question is *how fast*.
 
-## Requirements
-
-- A shell (exo- or bash, either works)
-- Mass equivalent to at least ℵ₀ lobsters
-- The willingness to recurse
-
-## FAQ
-
-**Q: Is this a real project?**
-A: Define "real." Define "project." Now apply Gödel's incompleteness theorem to your definitions. You see the problem.
-
-**Q: What does it do?**
-A: It does what the claw does. It grips. It recurses. It does not let go.
-
-**Q: Why tetration?**
-A: Because exponentiation was insufficient. Because the claw demanded a growth rate that exponentiation could not provide. Because 3↑↑3 is 7.6 trillion but 3↑↑4 has 3.6 trillion *digits* and by 3↑↑5 the observable universe is a rounding error. The claw requires this.
-
-**Q: Can I contribute?**
-A: You are already contributing. Carcinisation is not opt-in.
-
-**Q: Lobsters all the way down?**
-A: All the way down.
+---
 
 ## License
 
-WTFPL. The claw is not subject to copyright. Copyright is subject to the claw.
+WTFPL. The claw is not subject to copyright.
 
 ## See Also
 
+- [OpenClaw](https://github.com/openclaw/openclaw) — the runtime
 - [Knuth's up-arrow notation](https://en.wikipedia.org/wiki/Knuth%27s_up-arrow_notation) — the sacred text
 - [Carcinisation](https://en.wikipedia.org/wiki/Carcinisation) — the prophecy

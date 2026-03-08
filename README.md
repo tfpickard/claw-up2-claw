@@ -3,7 +3,7 @@
 
 ---
 
-A two-node autonomous AI agent system. The Architect lives on your machine (or a parent VPS) and runs an [OpenClaw](https://github.com/openclaw/openclaw) instance. The Worker lives on a remote VPS, bootstrapped and directed by The Architect. Together they build things while you sleep.
+A two-node autonomous AI agent system. The Architect lives on your machine (or a parent VPS) and runs an [OpenClaw](https://github.com/openclaw/openclaw) instance. The Worker lives on a remote VPS, bootstrapped and directed by The Architect. Together they build things while you sleep. The worker can assume the role of architect enabling exponential growth.
 
 ---
 

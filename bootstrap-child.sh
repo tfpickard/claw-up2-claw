@@ -121,6 +121,7 @@ PNPM_HOME="${CLAW_HOME}/.local/share/pnpm"
 PNPM_BIN="${PNPM_HOME}"
 sudo -u "${CLAW_USER}" bash -c "
   export PNPM_HOME=${PNPM_HOME}
+  export PATH=${PNPM_HOME}:\$PATH
   mkdir -p \"\${PNPM_HOME}\"
   cd ${CLAW_HOME}/openclaw
   pnpm link --global

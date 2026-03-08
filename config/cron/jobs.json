@@ -1,0 +1,162 @@
+[
+  {
+    "jobId": "product-forge-trend-hunt",
+    "name": "Trend Hunt (every 4 hours)",
+    "enabled": true,
+    "agentId": "product-strategist",
+    "sessionTarget": "isolated",
+    "schedule": {
+      "kind": "cron",
+      "expr": "0 */4 * * *",
+      "tz": "UTC"
+    },
+    "payload": {
+      "kind": "agentTurn",
+      "message": "Time to run the trend hunt. Do the following in order:\n\n1. Run the script at ~/scripts/trend-hunt.sh and capture the path to the output file it prints.\n2. Read the trend report carefully.\n3. As the Product Strategist, score the top 5 most promising product opportunities using the scoring formula: composite = (pain_intensity × market_size) / build_effort. Pain, market, and build_effort are each 1–5.\n4. For each opportunity scoring composite ≥ 3.5, write a product brief to ~/ideas/briefs/{slug}.md using the standard brief format.\n5. Update ~/ideas/backlog.md with all scored ideas.\n6. Post a concise summary to this channel: the top 3 opportunities with one-liner descriptions and composite scores.\n\nBe concrete. Cite specific Reddit threads, GitHub repos, or HN posts from the trend report as evidence.",
+      "timeoutSeconds": 900
+    },
+    "delivery": {
+      "mode": "announce",
+      "channel": "slack",
+      "bestEffort": true
+    }
+  },
+
+  {
+    "jobId": "product-forge-research-sweep",
+    "name": "Research Sweep (every 4 hours, offset)",
+    "enabled": true,
+    "agentId": "researcher",
+    "sessionTarget": "isolated",
+    "schedule": {
+      "kind": "cron",
+      "expr": "30 */4 * * *",
+      "tz": "UTC"
+    },
+    "payload": {
+      "kind": "agentTurn",
+      "message": "Time to run research on the latest product briefs. Do the following:\n\n1. List all files in ~/ideas/briefs/ that have been modified in the last 5 hours.\n2. For each brief, check if a competitive landscape file already exists in ~/ideas/competitive/. If not, research it:\n   a. Search GitHub for similar projects (look for stars, recent commits, open issues asking for missing features)\n   b. Search Reddit for people discussing this problem\n   c. Look for existing SaaS products solving this problem\n   d. Write a competitive landscape doc to ~/ideas/competitive/{slug}.md\n3. For each brief without a feasibility verdict appended, run a 30-minute technical feasibility check: can this be built in a week with Node.js or Python? What's the riskiest technical assumption? Write your verdict at the bottom of the brief file.\n4. Post a brief research summary here: what you researched, what gaps you found, any ideas you think are weaker or stronger than they appear.",
+      "timeoutSeconds": 900
+    },
+    "delivery": {
+      "mode": "announce",
+      "channel": "slack",
+      "bestEffort": true
+    }
+  },
+
+  {
+    "jobId": "product-forge-morning-standup",
+    "name": "Morning Standup (09:00 UTC)",
+    "enabled": true,
+    "agentId": "product-strategist",
+    "sessionTarget": "isolated",
+    "schedule": {
+      "kind": "cron",
+      "expr": "0 9 * * *",
+      "tz": "UTC"
+    },
+    "payload": {
+      "kind": "agentTurn",
+      "message": "Good morning. Post the Product Forge daily standup.\n\nCheck the following directories for recent activity (last 24 hours):\n- ~/ideas/backlog.md — what ideas are being tracked\n- ~/ideas/briefs/ — new or updated product briefs\n- ~/ideas/specs/ — new UX specs\n- ~/projects/ — active builds and recent git commits\n- ~/reports/builds/ — completed build reports\n- ~/reports/tests/ — test verdicts\n- ~/reports/trends/ — latest trend report\n\nPost a structured standup with these sections:\n**Product Forge Standup — {date}**\n🎯 **Strategist:** [What was prioritized, what briefs are active]\n🔬 **Researcher:** [What was researched, key findings]\n🎨 **Designer:** [What specs were written]\n⚡ **Implementer:** [What was built or is in progress]\n🧪 **Tester:** [What was tested, verdicts]\n📋 **Pipeline:** [Top 3 ideas in queue with composite scores]\n🚀 **Today's focus:** [What each agent will work on today]\n⚠️ **Blockers:** [Anything needing human attention]\n\nWrite this standup to ~/reports/standups/{date}.md as well.",
+      "timeoutSeconds": 600
+    },
+    "delivery": {
+      "mode": "announce",
+      "channel": "slack",
+      "bestEffort": true
+    }
+  },
+
+  {
+    "jobId": "product-forge-evening-checkin",
+    "name": "Evening Check-In (18:00 UTC)",
+    "enabled": true,
+    "agentId": "implementer",
+    "sessionTarget": "isolated",
+    "schedule": {
+      "kind": "cron",
+      "expr": "0 18 * * *",
+      "tz": "UTC"
+    },
+    "payload": {
+      "kind": "agentTurn",
+      "message": "Evening check-in time. Post a brief end-of-day update.\n\nCheck ~/projects/ for any builds completed today, ~/reports/tests/ for test results, and ~/ideas/briefs/ for any newly approved ideas ready for development.\n\nPost:\n**Evening Check-In — {date}**\n✅ **Shipped today:** [anything that got a green test verdict or was completed]\n🔨 **In progress:** [what's actively being built, % estimate]\n🌙 **Overnight plan:** [what the agents will work on while humans sleep]\n🔴 **Needs human input:** [decisions or approvals needed before moving forward]\n\nKeep it short. No fluff.",
+      "timeoutSeconds": 300
+    },
+    "delivery": {
+      "mode": "announce",
+      "channel": "slack",
+      "bestEffort": true
+    }
+  },
+
+  {
+    "jobId": "product-forge-build-cycle",
+    "name": "Build Cycle Trigger (every 8 hours)",
+    "enabled": true,
+    "agentId": "implementer",
+    "sessionTarget": "isolated",
+    "schedule": {
+      "kind": "cron",
+      "expr": "0 */8 * * *",
+      "tz": "UTC"
+    },
+    "payload": {
+      "kind": "agentTurn",
+      "message": "Time to build. Do the following:\n\n1. Check ~/ideas/specs/ for specs that don't yet have a corresponding project in ~/projects/. Pick the most recent one.\n2. If there's a spec ready, read it fully, then build the MVP:\n   - Create ~/projects/{slug}/ with the standard structure\n   - Write the code implementing what the spec describes\n   - Write a README.md with setup and run instructions\n   - Commit everything with git init + initial commit\n   - Write a build report to ~/reports/builds/{slug}-{date}.md\n3. If no spec is ready, check ~/ideas/briefs/ for approved briefs without a spec. Pick the top one and ask the designer agent to write a spec by creating a task description in ~/ideas/pending-specs/{slug}.md\n4. If there's an existing project that's in progress (no test report yet), continue working on it.\n\nPost a brief status update here when done.",
+      "timeoutSeconds": 1800
+    },
+    "delivery": {
+      "mode": "announce",
+      "channel": "slack",
+      "bestEffort": true
+    }
+  },
+
+  {
+    "jobId": "product-forge-test-cycle",
+    "name": "Test Cycle (every 8 hours, offset)",
+    "enabled": true,
+    "agentId": "tester",
+    "sessionTarget": "isolated",
+    "schedule": {
+      "kind": "cron",
+      "expr": "0 4 */1 * *",
+      "tz": "UTC"
+    },
+    "payload": {
+      "kind": "agentTurn",
+      "message": "Time to test. Do the following:\n\n1. Find build reports in ~/reports/builds/ that don't yet have a corresponding test report in ~/reports/tests/. Prioritize the most recent.\n2. For each untested build:\n   a. Read the spec from ~/ideas/specs/\n   b. Read the build report from ~/reports/builds/\n   c. Set up and run the project following the README\n   d. Run through the happy path, edge cases, and error states\n   e. Write a test report to ~/reports/tests/{slug}-{date}.md with your verdict: 🟢 Ship / 🟡 Ship with caveats / 🔴 Do not ship\n3. Post your test verdict(s) here. Be specific about what passed and what failed.",
+      "timeoutSeconds": 900
+    },
+    "delivery": {
+      "mode": "announce",
+      "channel": "slack",
+      "bestEffort": true
+    }
+  },
+
+  {
+    "jobId": "product-forge-weekly-review",
+    "name": "Weekly Portfolio Review (Monday 10:00 UTC)",
+    "enabled": true,
+    "agentId": "product-strategist",
+    "sessionTarget": "isolated",
+    "schedule": {
+      "kind": "cron",
+      "expr": "0 10 * * 1",
+      "tz": "UTC"
+    },
+    "payload": {
+      "kind": "agentTurn",
+      "message": "Weekly portfolio review time. This is the big weekly post.\n\nReview everything from the past 7 days across all directories:\n- ~/reports/builds/ — what was built\n- ~/reports/tests/ — what shipped vs what failed\n- ~/ideas/backlog.md — idea pipeline health\n- ~/ideas/briefs/ — brief quality and count\n- ~/reports/trends/ — trend themes across the week\n\nPost a detailed weekly review:\n**Product Forge Weekly Review — Week of {date}**\n\n🚀 **Shipped this week:**\n[List of products with green test verdicts, brief description, how to run]\n\n🔨 **In development:**\n[Products being built, estimated completion]\n\n📋 **Idea pipeline:**\n[Top 5 ideas in backlog with composite scores, status]\n\n🗑️ **Killed this week:**\n[Ideas or builds that were abandoned and why]\n\n📈 **Trend themes:**\n[Recurring signals from the week's trend reports — what are the big patterns?]\n\n🎯 **Next week's priorities:**\n[Strategic recommendation: what should the collective focus on next week]\n\n💡 **One big bet:**\n[If we could only build one thing next month, what should it be and why?]\n\nSave this to ~/reports/standups/weekly-{date}.md as well.",
+      "timeoutSeconds": 900
+    },
+    "delivery": {
+      "mode": "announce",
+      "channel": "slack",
+      "bestEffort": true
+    }
+  }
+]

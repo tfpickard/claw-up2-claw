@@ -1,6 +1,6 @@
 ---
 name: vps-provisioner
-description: SSH into a remote VPS and provision it as a child OpenClaw instance running the Product Forge Collective — five specialist agents (strategist, researcher, designer, implementer, tester) that continuously scout trends on Reddit and GitHub, develop ideas into products, and report via Slack.
+description: Provision a remote VPS as a child OpenClaw instance running the Product Forge Collective — five specialist agents (strategist, researcher, designer, implementer, tester) that continuously scout trends on Reddit and GitHub, develop ideas into products, and report via Slack.
 metadata:
   openclaw:
     cliHelp: |
@@ -8,30 +8,29 @@ metadata:
       Usage: vps-provisioner [command]
 
       Commands:
-        provision        Install and configure OpenClaw on a remote VPS with the Product Forge Collective
-        configure-slack  Set up Slack integration on the child node
-        forge            Trigger an immediate innovation cycle (trend hunt → ideas → Slack)
-        delegate         Send a task to the child node
-        standup          Pull today's standup from the child node's Slack reports
-        ideas            List product ideas currently in the pipeline
-        sprint           Show what the Implementer is currently building
-        status           Check child node health and current activity
-        report           Pull latest report from child node
-        kill             Gracefully shut down child node instance
+        provision        Run provision.sh to set up the child VPS
+        configure-slack  Step-by-step guide to add Slack integration
+        forge            Trigger an immediate innovation cycle on the child
+        delegate         Send a task to a specific agent on the child
+        standup          Pull today's standup report from child
+        ideas            Show the current idea pipeline
+        sprint           Show what the Implementer is actively building
+        status           Health-check the child node
+        report           Pull latest report from child
+        kill             Stop the child node's OpenClaw service
 
       Options:
         --host      Remote VPS IP or hostname
-        --user      SSH user (default: root)
+        --user      SSH user
         --key       Path to SSH private key
-        --port      SSH port (default: 22)
 runtime:
   env:
     - CHILD_VPS_HOST
     - CHILD_VPS_USER
     - CHILD_VPS_KEY_PATH
-    - CHILD_OPENCLAW_PORT
     - CHILD_LLM_API_KEY
     - CHILD_LLM_PROVIDER
+    - CHILD_OPENCLAW_PORT
     - CHILD_SLACK_APP_TOKEN
     - CHILD_SLACK_BOT_TOKEN
     - CHILD_SLACK_CHANNEL
@@ -39,13 +38,48 @@ runtime:
     - ssh
     - scp
     - bash
+    - jq
 ---
 
 # VPS Provisioner Skill
 
-Gives The Architect the ability to SSH into a blank VPS, bootstrap it as a
-fully configured child OpenClaw instance running the **Product Forge Collective**
-— five autonomous agents that continuously find, develop, and ship products.
+Manages the **Product Forge Collective** — a five-agent OpenClaw instance on a
+remote VPS that continuously hunts trends, develops product ideas, and ships.
+
+---
+
+## Repo Layout
+
+```
+claw-up2-claw/
+  provision.sh                 ← run this to provision a target VPS
+  bootstrap-child.sh           ← runs on the remote VPS (called by provision.sh)
+  nuke-child.sh                ← tears everything down
+  tmux.conf                    ← tmux config copied to the claw user
+  config/
+    openclaw.json              ← template; ${VAR} placeholders substituted by provision.sh
+    cron/
+      jobs.json                ← cron job definitions (loaded directly by OpenClaw)
+  workspaces/
+    AGENTS.md                  ← shared cross-agent coordination rules
+    product-strategist/
+      SOUL.md                  ← Product Strategist persona
+      AGENTS.md
+    researcher/
+      SOUL.md                  ← Researcher persona
+      AGENTS.md
+    designer/
+      SOUL.md                  ← Designer persona
+      AGENTS.md
+    implementer/
+      SOUL.md                  ← Implementer persona
+      AGENTS.md
+    tester/
+      SOUL.md                  ← Tester persona
+      AGENTS.md
+  scripts/
+    trend-hunt.sh              ← fetches Reddit, HN, GitHub trends
+```
 
 ---
 
@@ -53,241 +87,201 @@ fully configured child OpenClaw instance running the **Product Forge Collective*
 
 ### provision
 
-Connects to the target VPS and runs `bootstrap-child.sh`. The child instance is configured with:
-
-- OpenClaw installed and running as a systemd service
-- Five specialist souls: Product Strategist, Researcher, Designer, Implementer, Tester
-- Multi-agent orchestration enabled (up to 6 concurrent agents)
-- Slack integration (if tokens provided — see `configure-slack`)
-- Automated trend hunting via `scripts/trend-hunt.sh`
-- Cron jobs: trend hunt (every 4h), morning standup (9am UTC), evening check-in (6pm UTC), weekly review (Mon 10am UTC)
-- Sandboxed under non-root user `claw`
-
-**To provision:**
+Runs `provision.sh`, which:
+1. Generates `openclaw.json` from the template with substituted values
+2. SCPs all config, workspace, scripts, and tmux files to the target
+3. Runs `bootstrap-child.sh` on the target inside a `tmux` session (or `nohup` if tmux isn't installed yet)
 
 ```bash
-ssh root@<VPS_IP> bash <<EOF
-export LLM_API_KEY="${CHILD_LLM_API_KEY}"
-export LLM_PROVIDER="${CHILD_LLM_PROVIDER:-anthropic}"
-export PARENT_PUBKEY="$(cat ~/.ssh/id_ed25519.pub)"
-export OPENCLAW_PORT="${CHILD_OPENCLAW_PORT:-18789}"
-export SLACK_APP_TOKEN="${CHILD_SLACK_APP_TOKEN:-}"
-export SLACK_BOT_TOKEN="${CHILD_SLACK_BOT_TOKEN:-}"
-export SLACK_CHANNEL="${CHILD_SLACK_CHANNEL:-general}"
-$(cat bootstrap-child.sh)
-EOF
+CHILD_VPS_HOST=1.2.3.4 \
+CHILD_VPS_USER=root \
+CHILD_VPS_KEY_PATH=~/.ssh/id_ed25519 \
+CHILD_LLM_API_KEY=sk-ant-... \
+CHILD_SLACK_APP_TOKEN=xapp-... \
+CHILD_SLACK_BOT_TOKEN=xoxb-... \
+./provision.sh
+```
+
+Required: `CHILD_VPS_HOST`, `CHILD_VPS_KEY_PATH`, `CHILD_LLM_API_KEY`
+
+Optional: `CHILD_VPS_USER` (default: root), `CHILD_VPS_PORT` (default: 22),
+`CHILD_LLM_PROVIDER` (default: anthropic), `CHILD_OPENCLAW_PORT` (default: 18789),
+`CHILD_SLACK_APP_TOKEN`, `CHILD_SLACK_BOT_TOKEN`, `CHILD_SLACK_CHANNEL` (default: general)
+
+**Watch bootstrap progress:**
+```bash
+ssh -t -i ~/.ssh/id_ed25519 root@1.2.3.4 tmux attach -t claw-bootstrap
 ```
 
 ### configure-slack
 
-Sets up Slack integration on an already-provisioned child node.
+Step-by-step Slack app creation guide.
 
-**Step 1: Create a Slack App**
+**Step 1: Create the Slack App**
 
-1. Go to https://api.slack.com/apps → "Create New App" → "From scratch"
-2. Name it something like "Product Forge" and select your workspace
-3. Under **OAuth & Permissions**:
-   - Add Bot Token Scopes: `chat:write`, `chat:write.public`, `channels:history`, `channels:read`
-   - Click "Install to Workspace" → copy the **Bot User OAuth Token** (`xoxb-...`)
-4. Under **Socket Mode**:
+1. Go to https://api.slack.com/apps → **Create New App** → **From scratch**
+2. Name: `Product Forge` | Workspace: your workspace
+3. **Socket Mode** (left sidebar):
    - Enable Socket Mode
-   - Generate an App-Level Token with scope `connections:write` → copy the **App Token** (`xapp-...`)
-5. Under **Event Subscriptions** → Enable Events → Subscribe to:
-   - `message.channels`, `app_mention`
-6. Invite the bot to your desired channel: `/invite @ProductForge`
+   - App-Level Token: scope `connections:write` → copy `xapp-...` → `CHILD_SLACK_APP_TOKEN`
+4. **OAuth & Permissions**:
+   - Bot Token Scopes: `chat:write`, `chat:write.public`, `channels:history`, `channels:read`
+   - **Install to Workspace** → copy `xoxb-...` → `CHILD_SLACK_BOT_TOKEN`
+5. **Event Subscriptions** → Enable → bot events: `message.channels`, `app_mention`
+6. In Slack: `/invite @ProductForge` in your target channel
 
-**Step 2: Apply to child node**
+**Step 2: Apply to child node** — re-run `provision.sh` with Slack tokens, or update live:
 
 ```bash
-ssh ${CHILD_VPS_USER}@${CHILD_VPS_HOST} -i ${CHILD_VPS_KEY_PATH} <<EOF
-export SLACK_APP_TOKEN="xapp-..."
-export SLACK_BOT_TOKEN="xoxb-..."
-export SLACK_CHANNEL="general"
-
-# Update openclaw.json with Slack config
+ssh -i ${CHILD_VPS_KEY_PATH} claw@${CHILD_VPS_HOST} <<'EOF'
 python3 -c "
-import json, os
+import json
 cfg = json.load(open('/home/claw/.openclaw/openclaw.json'))
-cfg['channels'] = {
-  'slack': {
-    'appToken': os.environ['SLACK_APP_TOKEN'],
-    'botToken': os.environ['SLACK_BOT_TOKEN'],
-    'channel': {'policy': 'open'}
-  }
-}
+cfg['channels']['slack']['enabled'] = True
+cfg['channels']['slack']['appToken'] = 'xapp-...'
+cfg['channels']['slack']['botToken'] = 'xoxb-...'
 json.dump(cfg, open('/home/claw/.openclaw/openclaw.json', 'w'), indent=2)
-print('Slack configured.')
+print('Done.')
 "
-
-# Restart OpenClaw to pick up new config
 systemctl restart openclaw
-systemctl --wait is-active openclaw && echo "OpenClaw restarted OK"
-
-# Register cron job announcement channel
-sudo -u claw /home/claw/.local/share/pnpm/openclaw cron list
 EOF
-```
-
-**Step 3: Verify**
-
-Send a test message via the child:
-```bash
-ssh claw@${CHILD_VPS_HOST} -i ${CHILD_VPS_KEY_PATH} \
-  "openclaw chat --channel slack 'Product Forge is online. Innovation flywheel starting.'"
 ```
 
 ### forge
 
-Triggers an immediate innovation cycle on the child node: runs the trend
-hunter, feeds output to the Product Strategist, and posts top opportunities to Slack.
+Trigger an immediate trend hunt + scoring cycle.
 
 ```bash
-ssh claw@${CHILD_VPS_HOST} -i ${CHILD_VPS_KEY_PATH} \
-  "/home/claw/scripts/trend-hunt.sh && \
-   openclaw task add 'Read the latest trend report in ~/reports/trends/. Score the top 3 opportunities using the product brief template. Post findings to Slack.'"
+ssh -i ${CHILD_VPS_KEY_PATH} claw@${CHILD_VPS_HOST} \
+  "~/scripts/trend-hunt.sh && \
+   openclaw task add --agent product-strategist \
+   'Read the latest trend report in ~/reports/trends/. Score the top 3 opportunities and write briefs to ~/ideas/briefs/. Post findings to Slack.'"
 ```
 
 ### delegate
 
-Sends a task description to the child node. The child picks it up, executes
-autonomously, and writes results to the relevant output directories.
+Send a task to a specific agent.
 
 ```bash
-ssh claw@${CHILD_VPS_HOST} -i ${CHILD_VPS_KEY_PATH} \
-  "openclaw task add '${TASK_DESCRIPTION}'"
-```
+ssh -i ${CHILD_VPS_KEY_PATH} claw@${CHILD_VPS_HOST} \
+  "openclaw task add --agent researcher 'Research the competitive landscape for [idea].'"
 
-Example tasks:
-- `"Research the competitive landscape for AI-powered code review tools. Write a competitive landscape doc to ~/reports/research/."`
-- `"Build an MVP CLI tool that [description]. Spec is in ~/ideas/specs/[name].md."`
-- `"Run a full test pass on the project in ~/projects/[name]/. Write a test report."`
+# Agents: product-strategist, researcher, designer, implementer, tester
+```
 
 ### standup
 
-Pulls today's standup from the child node's reports directory.
+Pull today's standup.
 
 ```bash
-ssh claw@${CHILD_VPS_HOST} -i ${CHILD_VPS_KEY_PATH} \
-  "cat ~/reports/standups/$(date +%Y-%m-%d).md 2>/dev/null \
-   || ls -t ~/reports/standups/ | head -1 | xargs -I{} cat ~/reports/standups/{}"
+ssh -i ${CHILD_VPS_KEY_PATH} claw@${CHILD_VPS_HOST} \
+  "ls -t ~/reports/standups/*.md 2>/dev/null | head -1 | xargs cat"
 ```
 
 ### ideas
 
-Lists the current product idea pipeline on the child node.
+Show the idea pipeline.
 
 ```bash
-ssh claw@${CHILD_VPS_HOST} -i ${CHILD_VPS_KEY_PATH} "cat ~/ideas/backlog.md"
-```
-
-To see active briefs:
-```bash
-ssh claw@${CHILD_VPS_HOST} -i ${CHILD_VPS_KEY_PATH} "ls -lh ~/ideas/briefs/ && ls -lh ~/ideas/specs/"
+ssh -i ${CHILD_VPS_KEY_PATH} claw@${CHILD_VPS_HOST} "cat ~/ideas/backlog.md"
 ```
 
 ### sprint
 
-Shows what the Implementer is currently building.
+Show active builds.
 
 ```bash
-ssh claw@${CHILD_VPS_HOST} -i ${CHILD_VPS_KEY_PATH} \
-  "ls -lh ~/projects/ && find ~/reports/builds/ -name '*.md' -newer ~/reports/builds/$(ls -t ~/reports/builds/ | tail -1) 2>/dev/null | head -5"
+ssh -i ${CHILD_VPS_KEY_PATH} claw@${CHILD_VPS_HOST} \
+  "ls -lh ~/projects/ && \
+   ls -t ~/reports/builds/*.md 2>/dev/null | head -1 | xargs cat 2>/dev/null"
 ```
 
 ### status
 
-SSHes in and checks:
-- Is the OpenClaw service running?
-- What's in the current task queue?
-- Latest trend report timestamp?
-- Any errors in recent logs?
+Full health check.
 
 ```bash
-ssh claw@${CHILD_VPS_HOST} -i ${CHILD_VPS_KEY_PATH} <<'EOF'
-echo "=== OpenClaw service ===" && systemctl is-active openclaw
-echo "=== Latest trend report ===" && ls -t ~/reports/trends/*.md 2>/dev/null | head -1
-echo "=== Recent log tail ===" && tail -20 ~/logs/*.log 2>/dev/null | tail -20
-echo "=== Active projects ===" && ls ~/projects/ 2>/dev/null
-echo "=== Cron jobs ===" && openclaw cron list 2>/dev/null
+ssh -i ${CHILD_VPS_KEY_PATH} claw@${CHILD_VPS_HOST} <<'EOF'
+echo "=== service ===" && systemctl is-active openclaw
+echo "=== latest trend ===" && ls -t ~/reports/trends/*.md 2>/dev/null | head -1
+echo "=== projects ===" && ls ~/projects/ 2>/dev/null
+echo "=== cron ===" && openclaw cron list 2>/dev/null
+echo "=== disk ===" && df -h /home/claw
+echo "=== logs ===" && journalctl -u openclaw --lines=15 --no-pager
 EOF
 ```
 
 ### report
 
-Pulls the latest morning report from `~/reports/` on the child node.
+Pull the latest report.
 
 ```bash
-ssh claw@${CHILD_VPS_HOST} -i ${CHILD_VPS_KEY_PATH} \
-  "ls -t ~/reports/*.md 2>/dev/null | head -1 | xargs cat"
+ssh -i ${CHILD_VPS_KEY_PATH} claw@${CHILD_VPS_HOST} \
+  "ls -t ~/reports/**/*.md 2>/dev/null | head -1 | xargs cat"
 ```
 
 ### kill
 
-Gracefully stops the child node's OpenClaw service via systemctl.
+Stop OpenClaw on the child.
 
 ```bash
-ssh ${CHILD_VPS_USER}@${CHILD_VPS_HOST} -i ${CHILD_VPS_KEY_PATH} \
-  "systemctl stop openclaw && echo 'OpenClaw stopped.'"
+ssh -i ${CHILD_VPS_KEY_PATH} ${CHILD_VPS_USER}@${CHILD_VPS_HOST} \
+  "systemctl stop openclaw && echo 'stopped.'"
 ```
 
 ---
 
-## Environment Variables
+## How the Child Node Works
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `CHILD_VPS_HOST` | Yes | IP or hostname of child VPS |
-| `CHILD_VPS_USER` | Yes | SSH user (usually `root` for provisioning, `claw` after) |
-| `CHILD_VPS_KEY_PATH` | Yes | Path to SSH private key |
-| `CHILD_OPENCLAW_PORT` | Yes | Port OpenClaw listens on (default: 18789) |
-| `CHILD_LLM_API_KEY` | Yes | API key for the LLM provider |
-| `CHILD_LLM_PROVIDER` | No | LLM provider (default: `anthropic`) |
-| `CHILD_SLACK_APP_TOKEN` | No | Slack App-Level Token (`xapp-...`), enables Slack check-ins |
-| `CHILD_SLACK_BOT_TOKEN` | No | Slack Bot Token (`xoxb-...`), enables Slack check-ins |
-| `CHILD_SLACK_CHANNEL` | No | Slack channel name without `#` (default: `general`) |
+### Agents
+
+Defined in `config/openclaw.json` under `agents.list`. Each agent gets its own
+workspace directory (`~/.openclaw/workspaces/{id}/`) containing:
+- `SOUL.md` — persona and operating principles (loaded by OpenClaw as context)
+- `AGENTS.md` — cross-agent coordination protocol
+
+Global tool profile is `full`: terminal (bash exec), web fetch, web search, and
+browser automation all enabled.
+
+### Cron Jobs
+
+Defined in `config/cron/jobs.json`, placed at `~/.openclaw/cron/jobs.json` on the
+child. OpenClaw loads them directly — no CLI registration step required.
+
+| Job ID | Schedule | Agent | Slack |
+|--------|----------|-------|-------|
+| product-forge-trend-hunt | `0 */4 * * *` | product-strategist | ✓ |
+| product-forge-research-sweep | `30 */4 * * *` | researcher | ✓ |
+| product-forge-morning-standup | `0 9 * * *` | product-strategist | ✓ |
+| product-forge-evening-checkin | `0 18 * * *` | implementer | ✓ |
+| product-forge-build-cycle | `0 */8 * * *` | implementer | ✓ |
+| product-forge-test-cycle | `0 4 * * *` | tester | ✓ |
+| product-forge-weekly-review | `0 10 * * 1` | product-strategist | ✓ |
+
+All jobs use `"bestEffort": true` on Slack delivery — if Slack isn't configured,
+they still run silently.
+
+### Filesystem Handoffs
+
+```
+~/reports/trends/        ← trend-hunt.sh writes here
+~/ideas/briefs/          ← Strategist writes
+~/ideas/competitive/     ← Researcher writes
+~/ideas/specs/           ← Designer writes
+~/projects/{slug}/       ← Implementer writes
+~/reports/builds/        ← Implementer writes build reports
+~/reports/tests/         ← Tester writes test verdicts
+~/reports/standups/      ← Strategist writes daily/weekly summaries
+```
 
 ---
 
-## Security Notes
+## Security
 
-- Child node runs as non-root user `claw` with restricted sudo
-- No outbound communication without scheduled cron announcements or explicit delegation
-- All actions logged to `/home/claw/logs/`
-- SSH key auth only — password auth disabled on child node
-- UFW configured: only SSH and OpenClaw port open
-- Slack tokens stored only in `~/.openclaw/openclaw.json` on the child node (not in this repo)
-
----
-
-## Directory Layout on Child Node
-
-```
-/home/claw/
-  .openclaw/
-    openclaw.json     ← main config (LLM, Slack, agents)
-    souls/            ← specialist soul definitions
-      product-strategist.md
-      researcher.md
-      designer.md
-      implementer.md
-      tester.md
-  scripts/
-    trend-hunt.sh     ← fetches Reddit + GitHub + HN trends
-    setup-cron.sh     ← registers cron jobs (runs once at setup)
-  ideas/
-    backlog.md        ← all ideas, scored
-    briefs/           ← product briefs (one per idea)
-    specs/            ← UX specs from Designer
-    competitive/      ← competitive research docs
-    archive/          ← shipped or abandoned ideas
-  projects/           ← active builds
-  reports/
-    trends/           ← trend reports from trend-hunt.sh
-    research/         ← deep research from Researcher
-    builds/           ← build reports from Implementer
-    tests/            ← test reports from Tester
-    standups/         ← daily standup summaries
-  logs/               ← openclaw logs
-```
+- Child runs as non-root `claw` user
+- SSH: root login and password auth disabled post-bootstrap
+- UFW: only SSH + OpenClaw port allowed inbound
+- Gateway auth token generated at provision time — saved in `provision.sh` output
+- Slack tokens live only in `~/.openclaw/openclaw.json` on the child
 
 ---

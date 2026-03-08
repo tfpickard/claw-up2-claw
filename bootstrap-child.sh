@@ -212,6 +212,8 @@ chown -R "${CLAW_USER}:${CLAW_USER}" \
 
 # ── Git sync repo ─────────────────────────────────────────────────────────────
 
+sudo -u "${CLAW_USER}" git config --global user.email "claw@worker"
+sudo -u "${CLAW_USER}" git config --global user.name "The Worker"
 sudo -u "${CLAW_USER}" git init "${CLAW_HOME}/sync"
 sudo -u "${CLAW_USER}" bash -c \
   "cd ${CLAW_HOME}/sync && git commit --allow-empty -m 'init'"

@@ -50,15 +50,7 @@ apt-get install -y -qq \
   zsh
 
 # ── btm (bottom) ──────────────────────────────────────────────────────────────
-
-echo "==> Installing btm"
-BTM_VER=$(curl -s https://api.github.com/repos/ClementTsang/bottom/releases/latest \
-  | jq -r '.tag_name')
-curl -fsSL \
-  "https://github.com/ClementTsang/bottom/releases/download/${BTM_VER}/bottom_${BTM_VER#v}_amd64.deb" \
-  -o /tmp/bottom.deb
-dpkg -i /tmp/bottom.deb
-rm /tmp/bottom.deb
+apt-get install -y -qq btm
 
 # ── Node.js 20 LTS ────────────────────────────────────────────────────────────
 

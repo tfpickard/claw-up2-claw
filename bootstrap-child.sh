@@ -53,7 +53,6 @@ apt-get install -y -qq \
   python3 python3-pip python3-venv \
   build-essential gcc g++ make \
   openssh-server \
-  ufw fail2ban \
   ca-certificates gnupg \
   software-properties-common \
   apt-transport-https \
@@ -267,22 +266,6 @@ EOF
 systemctl daemon-reload
 systemctl enable openclaw
 systemctl start openclaw
-
-# ── SSH hardening ─────────────────────────────────────────────────────────────
-
-log "Hardening SSH"
-sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
-sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
-systemctl restart sshd
-
-# ── Firewall ──────────────────────────────────────────────────────────────────
-
-log "Configuring UFW firewall"
-ufw default deny incoming
-ufw default allow outgoing
-ufw allow ssh
-ufw allow "${OPENCLAW_PORT}/tcp"
-ufw --force enable
 
 # ── Run doctor ────────────────────────────────────────────────────────────────
 

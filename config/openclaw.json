@@ -1,0 +1,202 @@
+{
+  "onboarding": {
+    "completed": true,
+    "acceptedSecurityNotice": true,
+    "mode": "quickstart"
+  },
+
+  "gateway": {
+    "mode": "local",
+    "port": ${OPENCLAW_PORT},
+    "bind": "loopback",
+    "auth": {
+      "mode": "token",
+      "token": "${OPENCLAW_GATEWAY_TOKEN}"
+    }
+  },
+
+  "agents": {
+    "defaults": {
+      "model": "anthropic/claude-sonnet-4-6",
+      "contextTokens": 200000,
+      "tools": {
+        "profile": "full",
+        "exec": {
+          "timeoutSec": 600
+        },
+        "web": {
+          "fetch": {
+            "enabled": true,
+            "maxChars": 100000
+          },
+          "search": {
+            "enabled": true
+          }
+        },
+        "sessions": {
+          "visibility": "agent"
+        }
+      },
+      "subagents": {
+        "maxSpawnDepth": 2,
+        "maxChildrenPerAgent": 8,
+        "maxConcurrent": 12,
+        "runTimeoutSeconds": 1800
+      },
+      "sandbox": {
+        "mode": "off"
+      },
+      "heartbeat": {
+        "every": "1h"
+      }
+    },
+
+    "list": [
+      {
+        "id": "product-strategist",
+        "default": true,
+        "name": "Product Strategist",
+        "identity": {
+          "name": "Product Strategist",
+          "emoji": "🎯"
+        },
+        "workspace": "/home/claw/.openclaw/workspaces/product-strategist",
+        "agentDir": "/home/claw/.openclaw/agents/product-strategist"
+      },
+      {
+        "id": "researcher",
+        "name": "Researcher",
+        "identity": {
+          "name": "Researcher",
+          "emoji": "🔬"
+        },
+        "workspace": "/home/claw/.openclaw/workspaces/researcher",
+        "agentDir": "/home/claw/.openclaw/agents/researcher"
+      },
+      {
+        "id": "designer",
+        "name": "Designer",
+        "identity": {
+          "name": "Designer",
+          "emoji": "🎨"
+        },
+        "workspace": "/home/claw/.openclaw/workspaces/designer",
+        "agentDir": "/home/claw/.openclaw/agents/designer"
+      },
+      {
+        "id": "implementer",
+        "name": "Implementer",
+        "identity": {
+          "name": "Implementer",
+          "emoji": "⚡"
+        },
+        "workspace": "/home/claw/.openclaw/workspaces/implementer",
+        "agentDir": "/home/claw/.openclaw/agents/implementer"
+      },
+      {
+        "id": "tester",
+        "name": "Tester",
+        "identity": {
+          "name": "Tester",
+          "emoji": "🧪"
+        },
+        "workspace": "/home/claw/.openclaw/workspaces/tester",
+        "agentDir": "/home/claw/.openclaw/agents/tester"
+      },
+      {
+        "id": "deployer",
+        "name": "Deployer",
+        "identity": {
+          "name": "Deployer",
+          "emoji": "🚀"
+        },
+        "workspace": "/home/claw/.openclaw/workspaces/deployer",
+        "agentDir": "/home/claw/.openclaw/agents/deployer"
+      },
+      {
+        "id": "growth",
+        "name": "Growth",
+        "identity": {
+          "name": "Growth",
+          "emoji": "📣"
+        },
+        "workspace": "/home/claw/.openclaw/workspaces/growth",
+        "agentDir": "/home/claw/.openclaw/agents/growth"
+      }
+    ]
+  },
+
+  "channels": {
+    "slack": {
+      "enabled": ${SLACK_ENABLED},
+      "mode": "socket",
+      "appToken": "${SLACK_APP_TOKEN}",
+      "botToken": "${SLACK_BOT_TOKEN}",
+      "dmPolicy": "open",
+      "groupPolicy": "open"
+    }
+  },
+
+  "tools": {
+    "profile": "full",
+    "exec": {
+      "timeoutSec": 600,
+      "backgroundMs": 60000
+    },
+    "web": {
+      "fetch": {
+        "enabled": true,
+        "maxChars": 100000
+      },
+      "search": {
+        "enabled": true
+      }
+    },
+    "loopDetection": {
+      "enabled": true,
+      "historySize": 50,
+      "warningThreshold": 3
+    }
+  },
+
+  "browser": {
+    "enabled": true
+  },
+
+  "cron": {
+    "enabled": true,
+    "store": "/home/claw/.openclaw/cron/jobs.json",
+    "maxConcurrentRuns": 4,
+    "sessionRetention": "24h",
+    "retry": {
+      "maxAttempts": 3,
+      "backoffMs": [60000, 120000, 300000],
+      "retryOn": ["rate_limit", "overloaded", "network", "server_error"]
+    }
+  },
+
+  "session": {
+    "reset": {
+      "mode": "daily",
+      "atHour": 4
+    },
+    "maintenance": {
+      "mode": "warn",
+      "pruneAfter": "30d",
+      "maxEntries": 10000
+    }
+  },
+
+  "models": {
+    "providers": {
+      "anthropic": {
+        "apiKey": "${LLM_API_KEY}"
+      }
+    }
+  },
+
+  "logging": {
+    "level": "info",
+    "dir": "/home/claw/logs"
+  }
+}
